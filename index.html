@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LearnIQ — Adaptive Learning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════════
+   ROOT & RESET
+═══════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:    #0a0d14;
+  --ink2:   #111520;
+  --ink3:   #181d2e;
+  --edge:   rgba(255,255,255,0.07);
+  --edge2:  rgba(255,255,255,0.12);
+  --lime:   #c8f53b;
+  --lime2:  #a8d620;
+  --sky:    #38bdf8;
+  --rose:   #fb7185;
+  --amber:  #fbbf24;
+  --txt:    #e2e8f0;
+  --muted:  #64748b;
+  --muted2: #94a3b8;
+  --card:   rgba(255,255,255,0.03);
+  --r:      16px;
+  --fh: 'Instrument Serif', serif;
+  --fb: 'Space Grotesk', sans-serif;
+  --fm: 'JetBrains Mono', monospace;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--fb);
+  background: var(--ink);
+  color: var(--txt);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════════════
+   ANIMATED BACKGROUND
+═══════════════════════════════════════════════ */
+.bg-canvas {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+}
+.bg-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(rgba(200,245,59,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,245,59,.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+.bg-blob {
+  position: absolute; border-radius: 50%; filter: blur(120px); animation: blob-drift 20s ease-in-out infinite;
+}
+.blob-1 { width:600px;height:600px;background:#c8f53b;top:-200px;left:-150px;opacity:.06;animation-delay:0s; }
+.blob-2 { width:500px;height:500px;background:#38bdf8;bottom:-150px;right:-100px;opacity:.06;animation-delay:-7s; }
+.blob-3 { width:350px;height:350px;background:#fb7185;top:40%;left:60%;opacity:.05;animation-delay:-13s; }
+@keyframes blob-drift {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%      { transform: translate(30px,-40px) scale(1.05); }
+  66%      { transform: translate(-20px,25px) scale(0.96); }
+}
+
+/* ═══════════════════════════════════════════════
+   LAYOUT SHELL
+═══════════════════════════════════════════════ */
+#app {
+  position: relative; z-index: 1;
+  max-width: 760px; margin: 0 auto; padding: 0 20px 100px;
+}
+
+/* ═══════════════════════════════════════════════
+   SCREEN SYSTEM
+═══════════════════════════════════════════════ */
+.screen { display: none; }
+.screen.active { display: block; animation: screen-in .4s cubic-bezier(.16,1,.3,1); }
+@keyframes screen-in {
+  from { opacity:0; transform: translateY(20px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════════════
+   STEP INDICATOR (top of every screen)
+═══════════════════════════════════════════════ */
+.step-bar {
+  display: flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 32px 0 0;
+}
+.step-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--edge2); transition: all .3s;
+}
+.step-dot.done  { background: var(--lime); }
+.step-dot.active { background: var(--lime); width: 24px; border-radius: 4px; }
+
+/* ═══════════════════════════════════════════════
+   SCREEN 1 — PROFILE
+═══════════════════════════════════════════════ */
+.hero-block {
+  text-align: center; padding: 60px 0 48px;
+}
+.logo-mark {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--fm); font-size: 11px; font-weight: 600;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--lime); margin-bottom: 28px;
+}
+.logo-dot { width:8px;height:8px;border-radius:50%;background:var(--lime);animation:pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+.hero-block h1 {
+  font-family: var(--fh);
+  font-size: clamp(42px, 7vw, 68px);
+  font-weight: 400; line-height: 1.05;
+  letter-spacing: -.02em; margin-bottom: 16px;
+}
+.hero-block h1 em {
+  font-style: italic; color: var(--lime);
+}
+.hero-block p {
+  font-size: 16px; color: var(--muted2); max-width: 420px; margin: 0 auto 44px;
+}
+
+/* Form card */
+.form-card {
+  background: var(--card);
+  border: 1px solid var(--edge);
+  border-radius: 24px; padding: 36px;
+  position: relative; overflow: hidden;
+}
+.form-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--lime), transparent);
+}
+.form-card h2 {
+  font-family: var(--fh); font-size: 22px; font-weight: 400;
+  margin-bottom: 6px; letter-spacing: -.01em;
+}
+.form-card .form-sub {
+  font-size: 13px; color: var(--muted); margin-bottom: 28px;
+}
+
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.field-row.single { grid-template-columns: 1fr; }
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field label { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.field input, .field select {
+  background: rgba(255,255,255,.05);
+  border: 1px solid var(--edge2);
+  border-radius: 10px; padding: 13px 16px;
+  color: var(--txt); font-family: var(--fb); font-size: 15px;
+  outline: none; transition: all .2s; width: 100%;
+  appearance: none;
+}
+.field input::placeholder { color: var(--muted); }
+.field input:focus, .field select:focus {
+  border-color: var(--lime); background: rgba(200,245,59,.04);
+}
+.field select option { background: var(--ink2); color: var(--txt); }
+
+/* ═══════════════════════════════════════════════
+   BUTTONS
+═══════════════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: none; border-radius: 12px; cursor: pointer;
+  font-family: var(--fb); font-weight: 600; font-size: 14px;
+  letter-spacing: .02em; transition: all .22s; padding: 14px 24px;
+}
+.btn-lime {
+  background: var(--lime); color: #0a0d14;
+}
+.btn-lime:hover { background: var(--lime2); transform: translateY(-1px); box-shadow: 0 8px 28px rgba(200,245,59,.25); }
+.btn-ghost {
+  background: rgba(255,255,255,.06); color: var(--txt);
+  border: 1px solid var(--edge2);
+}
+.btn-ghost:hover { background: rgba(255,255,255,.1); }
+.btn-danger {
+  background: rgba(251,113,133,.12); color: var(--rose);
+  border: 1px solid rgba(251,113,133,.2);
+}
+.btn-danger:hover { background: rgba(251,113,133,.2); }
+.btn-full { width: 100%; font-size: 15px; padding: 16px; border-radius: 14px; }
+.btn:disabled { opacity: .4; cursor: not-allowed; transform: none !important; }
+
+/* ═══════════════════════════════════════════════
+   SCREEN 2 — COURSE SELECTOR
+═══════════════════════════════════════════════ */
+.screen-header {
+  padding: 36px 0 28px;
+  border-bottom: 1px solid var(--edge);
+  margin-bottom: 32px;
+}
+.sh-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--muted); cursor: pointer;
+  background: none; border: none; font-family: var(--fb);
+  padding: 6px 0; margin-bottom: 14px; transition: color .2s;
+}
+.sh-back:hover { color: var(--txt); }
+.sh-back svg { width:14px;height:14px; }
+.sh-title {
+  font-family: var(--fh); font-size: 32px; font-weight: 400;
+  line-height: 1.1; letter-spacing: -.02em;
+}
+.sh-title em { font-style: italic; color: var(--lime); }
+.sh-sub { font-size: 14px; color: var(--muted2); margin-top: 6px; }
+
+/* Course grid */
+.course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px,1fr)); gap: 12px; margin-bottom: 28px; }
+.course-card {
+  background: var(--card); border: 1px solid var(--edge);
+  border-radius: var(--r); padding: 20px;
+  cursor: pointer; transition: all .22s; text-align: left;
+  position: relative; overflow: hidden;
+}
+.course-card::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, var(--lime), transparent);
+  opacity: 0; transition: opacity .22s;
+}
+.course-card:hover { border-color: var(--lime); transform: translateY(-2px); }
+.course-card:hover::after { opacity: .04; }
+.course-card.selected { border-color: var(--lime); background: rgba(200,245,59,.06); }
+.course-card.selected::after { opacity: .06; }
+.cc-icon { font-size: 28px; margin-bottom: 10px; }
+.cc-name { font-family: var(--fb); font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+.cc-desc { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+/* Custom course input */
+.custom-course-wrap {
+  background: var(--card); border: 1px solid var(--edge);
+  border-radius: var(--r); padding: 20px; margin-bottom: 28px;
+}
+.custom-course-wrap .field input { background: rgba(255,255,255,.06); }
+
+/* Subject / Unit row */
+.su-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 28px; }
+
+/* ═══════════════════════════════════════════════
+   SCREEN 3 — LOADING
+═══════════════════════════════════════════════ */
+.loading-screen {
+  min-height: 60vh; display: flex; align-items: center; justify-content: center;
+  flex-direction: column; text-align: center; padding: 60px 20px;
+}
+.loader-ring {
+  width: 64px; height: 64px; margin: 0 auto 32px;
+  border: 2px solid rgba(200,245,59,.15);
+  border-top-color: var(--lime);
+  border-radius: 50%; animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-label {
+  font-family: var(--fh); font-size: 26px; font-weight: 400;
+  margin-bottom: 8px; letter-spacing: -.01em;
+}
+.loader-sub { font-size: 14px; color: var(--muted2); }
+.loader-steps { margin-top: 28px; display: flex; flex-direction: column; gap: 10px; }
+.loader-step {
+  font-family: var(--fm); font-size: 12px; color: var(--muted);
+  opacity: 0; animation: step-fade .5s forwards;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.loader-step::before { content:'▸'; color: var(--lime); }
+@keyframes step-fade { to { opacity: .7; } }
+
+/* ═══════════════════════════════════════════════
+   SCREEN 4 — TEST
+═══════════════════════════════════════════════ */
+.test-meta {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 24px 0 0; margin-bottom: 20px;
+}
+.test-tag {
+  font-family: var(--fm); font-size: 11px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase;
+  padding: 5px 14px; border-radius: 100px;
+}
+.tag-initial { background: rgba(56,189,248,.12); color: var(--sky); border: 1px solid rgba(56,189,248,.2); }
+.tag-adaptive { background: rgba(251,113,133,.12); color: var(--rose); border: 1px solid rgba(251,113,133,.2); }
+.test-round { font-family: var(--fm); font-size: 12px; color: var(--muted); }
+
+/* Progress */
+.progress-wrap { margin-bottom: 28px; }
+.progress-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 8px; font-weight: 500; }
+.progress-bar { height: 4px; background: rgba(255,255,255,.06); border-radius: 100px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--lime); border-radius: 100px; width: 0; transition: width .5s cubic-bezier(.4,0,.2,1); }
+
+/* Question cards */
+.q-stack { display: flex; flex-direction: column; gap: 16px; margin-bottom: 28px; }
+.q-card {
+  background: var(--card); border: 1px solid var(--edge);
+  border-radius: var(--r); padding: 24px; transition: border-color .2s;
+}
+.q-card:hover { border-color: var(--edge2); }
+.q-header { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 18px; }
+.q-num {
+  flex-shrink: 0; width: 28px; height: 28px;
+  border-radius: 8px; background: rgba(200,245,59,.1);
+  border: 1px solid rgba(200,245,59,.2);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--fm); font-size: 11px; font-weight: 600; color: var(--lime);
+  margin-top: 1px;
+}
+.q-text { font-size: 15px; font-weight: 500; line-height: 1.5; flex: 1; }
+.q-concept { font-family: var(--fm); font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* Options */
+.options { display: flex; flex-direction: column; gap: 8px; }
+.opt-item { position: relative; }
+.opt-item input { position: absolute; opacity: 0; width: 0; height: 0; }
+.opt-label {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.07);
+  cursor: pointer; font-size: 14px; color: var(--muted2);
+  transition: all .18s; background: rgba(255,255,255,.02);
+}
+.opt-radio {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.2); flex-shrink: 0;
+  transition: all .18s; display: flex; align-items: center; justify-content: center;
+}
+.opt-label:hover { border-color: rgba(200,245,59,.3); color: var(--txt); background: rgba(200,245,59,.03); }
+.opt-label:hover .opt-radio { border-color: var(--lime); }
+.opt-item input:checked + .opt-label {
+  border-color: var(--lime); color: var(--txt); background: rgba(200,245,59,.07);
+}
+.opt-item input:checked + .opt-label .opt-radio {
+  border-color: var(--lime); background: var(--lime);
+  box-shadow: 0 0 10px rgba(200,245,59,.4);
+}
+.opt-item input:checked + .opt-label .opt-radio::after {
+  content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--ink);
+}
+
+/* Result states for options */
+.opt-item.correct .opt-label { border-color: var(--lime); background: rgba(200,245,59,.08); color: var(--lime); pointer-events:none; }
+.opt-item.wrong   .opt-label { border-color: var(--rose); background: rgba(251,113,133,.08); color: var(--rose); pointer-events:none; }
+.opt-item.show-correct .opt-label { border-color: var(--lime); opacity: .6; pointer-events:none; }
+
+/* Submit / action row */
+.action-row { display: flex; gap: 12px; flex-wrap: wrap; }
+
+/* ═══════════════════════════════════════════════
+   SCREEN 5 — RESULTS
+═══════════════════════════════════════════════ */
+.score-hero {
+  background: var(--card); border: 1px solid var(--edge);
+  border-radius: 24px; padding: 40px 32px; text-align: center;
+  position: relative; overflow: hidden; margin-bottom: 24px;
+}
+.score-hero::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--lime), transparent);
+}
+.score-ring {
+  width: 120px; height: 120px; border-radius: 50%; margin: 0 auto 20px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.score-ring svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.score-ring circle { fill: none; stroke-width: 4; stroke-linecap: round; }
+.score-ring .track { stroke: rgba(255,255,255,.07); }
+.score-ring .fill  { stroke: var(--lime); stroke-dasharray: 339; stroke-dashoffset: 339; transition: stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1) .3s; }
+.score-ring.fail .fill { stroke: var(--rose); }
+.score-num {
+  font-family: var(--fh); font-size: 38px; font-weight: 400;
+  line-height: 1; color: var(--lime); z-index: 1; position: relative;
+}
+.score-ring.fail .score-num { color: var(--rose); }
+.score-label { font-family: var(--fh); font-size: 22px; margin-bottom: 6px; }
+.score-sub   { font-size: 14px; color: var(--muted2); }
+
+/* Feedback box */
+.feedback-box {
+  background: rgba(200,245,59,.05); border: 1px solid rgba(200,245,59,.14);
+  border-radius: var(--r); padding: 20px 22px; margin-bottom: 22px;
+  font-size: 14px; line-height: 1.7; color: var(--muted2);
+}
+.feedback-box .fb-head {
+  font-family: var(--fm); font-size: 11px; font-weight: 600;
+  color: var(--lime); letter-spacing: .1em; text-transform: uppercase;
+  margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+}
+
+/* Answer review */
+.review-title {
+  font-family: var(--fm); font-size: 11px; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  margin-bottom: 14px;
+}
+.review-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+.review-row {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 14px 16px; border-radius: 12px; border: 1px solid;
+  font-size: 13px; line-height: 1.5;
+}
+.review-row.ok    { background: rgba(200,245,59,.04); border-color: rgba(200,245,59,.14); }
+.review-row.wrong { background: rgba(251,113,133,.04); border-color: rgba(251,113,133,.14); }
+.review-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.review-q { font-weight: 600; color: var(--txt); margin-bottom: 3px; }
+.review-a { color: var(--muted2); }
+.review-correct { color: var(--lime); font-weight: 600; }
+
+/* Wrong concepts banner */
+.weak-banner {
+  background: rgba(251,113,133,.06); border: 1px solid rgba(251,113,133,.18);
+  border-radius: var(--r); padding: 20px 22px; margin-bottom: 22px;
+}
+.weak-title { font-family: var(--fb); font-size: 14px; font-weight: 700; color: var(--rose); margin-bottom: 10px; }
+.weak-tags  { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.weak-tag   { font-size: 12px; padding: 4px 12px; border-radius: 100px; background: rgba(251,113,133,.1); border: 1px solid rgba(251,113,133,.18); color: var(--rose); }
+.weak-desc  { font-size: 13px; color: var(--muted2); line-height: 1.6; }
+
+/* Round history pill */
+.round-history { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 22px; }
+.round-pill {
+  font-family: var(--fm); font-size: 11px; padding: 5px 12px;
+  border-radius: 100px; border: 1px solid var(--edge2); color: var(--muted2);
+}
+.round-pill.pass { border-color: rgba(200,245,59,.25); color: var(--lime); background: rgba(200,245,59,.07); }
+.round-pill.fail { border-color: rgba(251,113,133,.25); color: var(--rose); background: rgba(251,113,133,.07); }
+
+/* Perfect screen */
+.perfect-badge {
+  text-align: center; padding: 48px 20px;
+}
+.perfect-badge .trophy { font-size: 64px; margin-bottom: 16px; animation: trophy-bounce 1s ease-in-out; }
+@keyframes trophy-bounce { 0%,100%{transform:translateY(0)} 40%{transform:translateY(-14px)} 70%{transform:translateY(-6px)} }
+.perfect-badge h2 { font-family: var(--fh); font-size: 32px; margin-bottom: 8px; }
+.perfect-badge p  { font-size: 15px; color: var(--muted2); max-width: 360px; margin: 0 auto 32px; }
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════ */
+@media (max-width: 580px) {
+  .field-row  { grid-template-columns: 1fr; }
+  .su-grid    { grid-template-columns: 1fr; }
+  .course-grid { grid-template-columns: 1fr 1fr; }
+  .form-card  { padding: 24px 20px; }
+  .score-hero { padding: 30px 20px; }
+  .action-row { flex-direction: column; }
+  .hero-block h1 { font-size: 38px; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg-canvas">
+  <div class="bg-grid"></div>
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+  <div class="bg-blob blob-3"></div>
+</div>
+
+<div id="app">
+
+  <!-- ══════════════════════════════════════════
+       SCREEN 1 — PROFILE
+  ══════════════════════════════════════════════ -->
+  <div id="s-profile" class="screen active">
+    <div class="step-bar" id="steps-profile"></div>
+    <div class="hero-block">
+      <div class="logo-mark"><span class="logo-dot"></span> LearnIQ AI</div>
+      <h1>Learn anything.<br/><em>Adapt to you.</em></h1>
+      <p>AI-powered tests that adjust in real-time based on what you get wrong — so you master every concept.</p>
+    </div>
+
+    <div class="form-card">
+      <h2>Let's get started</h2>
+      <p class="form-sub">Tell us a little about yourself so we can personalise your experience.</p>
+
+      <div class="field-row">
+        <div class="field">
+          <label>Full Name</label>
+          <input type="text" id="inp-name" placeholder="Your Name" />
+        </div>
+        <div class="field">
+          <label>Age</label>
+          <input type="number" id="inp-age" placeholder="Your Age" min="10" max="60" />
+        </div>
+      </div>
+      <div class="field-row single">
+        <div class="field">
+          <label>Email Address</label>
+          <input type="email" id="inp-email" placeholder="mailid@domain.com" />
+        </div>
+      </div>
+
+      <br/>
+      <button class="btn btn-lime btn-full" onclick="submitProfile()">
+        Continue — Choose Your Course →
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SCREEN 2 — COURSE / SUBJECT / UNIT
+  ══════════════════════════════════════════════ -->
+  <div id="s-course" class="screen">
+    <div class="step-bar" id="steps-course"></div>
+    <div class="screen-header">
+      <button class="sh-back" onclick="goBack('s-profile')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 12L6 8l4-4"/></svg>
+        Back
+      </button>
+      <div class="sh-title">Select your <em>subject</em></div>
+      <div class="sh-sub" id="course-greeting">Hi! What are you studying today?</div>
+    </div>
+
+    <!-- Course preset grid -->
+    <div class="course-grid" id="course-grid"></div>
+
+    <!-- Custom course -->
+    <div class="custom-course-wrap">
+      <div class="field">
+        <label>Or type a custom course</label>
+        <input type="text" id="inp-custom-course" placeholder="e.g. MBA, B.Tech CSE, Class 12 Science…" oninput="onCustomCourse()" />
+      </div>
+    </div>
+
+    <!-- Subject & Unit -->
+    <div class="su-grid">
+      <div class="field">
+        <label>Subject</label>
+        <input type="text" id="inp-subject" placeholder="e.g. Data Structures, Physics, DBMS…" />
+      </div>
+      <div class="field">
+        <label>Unit / Topic</label>
+        <input type="text" id="inp-unit" placeholder="e.g. Linked Lists, Newton's Laws…" />
+      </div>
+    </div>
+
+    <button class="btn btn-lime btn-full" onclick="startTest()">
+      Generate My Test →
+    </button>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SCREEN 3 — LOADING
+  ══════════════════════════════════════════════ -->
+  <div id="s-loading" class="screen">
+    <div class="loading-screen">
+      <div class="loader-ring"></div>
+      <div class="loader-label" id="loader-title">Building your test…</div>
+      <div class="loader-sub" id="loader-sub">Grok AI is analysing the topic</div>
+      <div class="loader-steps" id="loader-steps"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SCREEN 4 — TEST
+  ══════════════════════════════════════════════ -->
+  <div id="s-test" class="screen">
+    <div class="test-meta">
+      <span class="test-tag tag-initial" id="test-tag">Initial Test</span>
+      <span class="test-round" id="test-round">Round 1</span>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-info">
+        <span id="prog-text">0 answered</span>
+        <span id="prog-pct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+    </div>
+    <div class="q-stack" id="q-stack"></div>
+    <div class="action-row">
+      <button class="btn btn-lime" style="flex:1;font-size:15px;padding:16px;" id="submit-btn" onclick="submitTest()">
+        Submit Answers
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       SCREEN 5 — RESULTS
+  ══════════════════════════════════════════════ -->
+  <div id="s-results" class="screen">
+    <div class="screen-header" style="border-bottom:none;margin-bottom:0;padding-bottom:0">
+      <div class="sh-title" id="result-title">Round Complete</div>
+    </div>
+
+    <!-- Score ring -->
+    <div style="margin-top:24px" id="score-block"></div>
+
+    <!-- Feedback -->
+    <div class="feedback-box" id="feedback-box" style="display:none">
+      <div class="fb-head">✦ AI Feedback</div>
+      <div id="feedback-text">Loading…</div>
+    </div>
+
+    <!-- Round history -->
+    <div class="round-history" id="round-history"></div>
+
+    <!-- Weak concepts -->
+    <div id="weak-block"></div>
+
+    <!-- Answer review -->
+    <div class="review-title">Answer Review</div>
+    <div class="review-list" id="review-list"></div>
+
+    <!-- Actions -->
+    <div class="action-row" id="result-actions"></div>
+  </div>
+
+</div><!-- #app -->
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════
+const API = 'http://localhost:5000/api';   // backend URL
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let student = { name:'', email:'', age:'' };
+let session = {
+  course: '', subject: '', unit: '',
+  round: 0,
+  questions: [],
+  answers: {},
+  roundHistory: [],    // [{round, score, total, pass}]
+  wrongQuestions: [],
+};
+
+// ═══════════════════════════════════════════════
+// COURSE PRESETS
+// ═══════════════════════════════════════════════
+const COURSES = [
+  { icon:'💻', name:'BCA', desc:'Bachelor of Computer Applications' },
+  { icon:'⚙️', name:'B.Tech CSE', desc:'Computer Science Engineering' },
+  { icon:'📊', name:'BBA / MBA', desc:'Business Administration' },
+  { icon:'🔬', name:'B.Sc', desc:'Bachelor of Science' },
+  { icon:'📐', name:'Class 11/12', desc:'Senior Secondary (PCM/PCB)' },
+  { icon:'⚖️', name:'B.Com / CA', desc:'Commerce & Accounts' },
+];
+
+// ═══════════════════════════════════════════════
+// STEPS INDICATOR
+// ═══════════════════════════════════════════════
+const STEPS = ['s-profile','s-course','s-test','s-results'];
+function renderSteps(current) {
+  const idx = STEPS.indexOf(current);
+  ['steps-profile','steps-course'].forEach(id => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.innerHTML = STEPS.slice(0,4).map((_,i) => {
+      let cls = i < idx ? 'done' : i === idx ? 'active' : '';
+      return `<div class="step-dot ${cls}"></div>`;
+    }).join('');
+  });
+}
+
+// ═══════════════════════════════════════════════
+// SCREEN NAV
+// ═══════════════════════════════════════════════
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({ top:0, behavior:'smooth' });
+  renderSteps(id);
+}
+function goBack(to) { show(to); }
+
+// ═══════════════════════════════════════════════
+// SCREEN 1 — PROFILE SUBMIT
+// ═══════════════════════════════════════════════
+function submitProfile() {
+  const name  = document.getElementById('inp-name').value.trim();
+  const email = document.getElementById('inp-email').value.trim();
+  const age   = document.getElementById('inp-age').value.trim();
+
+  const mark = (id, bad) => document.getElementById(id).style.borderColor = bad ? 'var(--rose)' : '';
+  let ok = true;
+  if(!name)  { mark('inp-name', true);  ok=false; } else mark('inp-name', false);
+  if(!email || !email.includes('@')) { mark('inp-email',true); ok=false; } else mark('inp-email',false);
+  if(!age)   { mark('inp-age',  true);  ok=false; } else mark('inp-age',  false);
+  if(!ok) return;
+
+  student = { name, email, age };
+
+  // Populate course screen
+  document.getElementById('course-greeting').textContent =
+    `Hi ${name}! What are you studying today?`;
+  renderCourseGrid();
+  show('s-course');
+}
+
+// ═══════════════════════════════════════════════
+// SCREEN 2 — COURSE GRID
+// ═══════════════════════════════════════════════
+function renderCourseGrid() {
+  const grid = document.getElementById('course-grid');
+  grid.innerHTML = COURSES.map((c,i) => `
+    <div class="course-card" id="cc-${i}" onclick="selectCourse(${i},'${esc(c.name)}')">
+      <div class="cc-icon">${c.icon}</div>
+      <div class="cc-name">${c.name}</div>
+      <div class="cc-desc">${c.desc}</div>
+    </div>
+  `).join('');
+}
+
+function selectCourse(idx, name) {
+  document.querySelectorAll('.course-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById(`cc-${idx}`).classList.add('selected');
+  session.course = name;
+  document.getElementById('inp-custom-course').value = '';
+}
+
+function onCustomCourse() {
+  document.querySelectorAll('.course-card').forEach(c => c.classList.remove('selected'));
+  session.course = document.getElementById('inp-custom-course').value.trim();
+}
+
+// ═══════════════════════════════════════════════
+// START TEST — call backend
+// ═══════════════════════════════════════════════
+async function startTest() {
+  const subject = document.getElementById('inp-subject').value.trim();
+  const unit    = document.getElementById('inp-unit').value.trim();
+  const course  = session.course || document.getElementById('inp-custom-course').value.trim();
+
+  const markField = (id, bad) => document.getElementById(id).style.borderColor = bad ? 'var(--rose)' : '';
+  let ok = true;
+  if(!course)  { ok=false; } // highlight via custom input
+  if(!subject) { markField('inp-subject', true); ok=false; } else markField('inp-subject', false);
+  if(!unit)    { markField('inp-unit',    true); ok=false; } else markField('inp-unit',    false);
+  if(!ok) return;
+
+  session.course  = course;
+  session.subject = subject;
+  session.unit    = unit;
+  session.round   = 1;
+  session.roundHistory = [];
+
+  showLoading('Building your personalised test…', 'Grok AI is reading the topic', [
+    '📖 Analysing "' + unit + '"…',
+    '🧠 Writing 5 MCQs…',
+    '✅ Checking correctness…',
+  ]);
+
+  try {
+    const res = await fetch(`${API}/generate-test`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ name: student.name, email: student.email, age: student.age, course, subject, unit })
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error);
+    loadTestScreen(data.data.questions, false);
+  } catch(e) {
+    showError(e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// LOADING SCREEN
+// ═══════════════════════════════════════════════
+function showLoading(title, sub, steps) {
+  document.getElementById('loader-title').textContent = title;
+  document.getElementById('loader-sub').textContent   = sub;
+  document.getElementById('loader-steps').innerHTML   = steps.map((s,i) =>
+    `<div class="loader-step" style="animation-delay:${i*.6+.4}s">${s}</div>`
+  ).join('');
+  show('s-loading');
+}
+
+function showError(msg) {
+  document.getElementById('loader-title').textContent = '⚠ Something went wrong';
+  document.getElementById('loader-sub').textContent   = msg;
+  document.getElementById('loader-steps').innerHTML   = `
+    <div class="loader-step" style="opacity:.8;animation:none">Make sure the backend is running at localhost:5000</div>
+    <div style="margin-top:20px">
+      <button class="btn btn-ghost" onclick="show('s-course')">← Go Back</button>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════
+// LOAD TEST SCREEN
+// ═══════════════════════════════════════════════
+function loadTestScreen(questions, isAdaptive) {
+  session.questions = questions;
+  session.answers   = {};
+
+  // Tag + round label
+  const tag = document.getElementById('test-tag');
+  tag.textContent = isAdaptive ? '⚡ Adaptive Retest' : '🎯 Initial Test';
+  tag.className   = 'test-tag ' + (isAdaptive ? 'tag-adaptive' : 'tag-initial');
+  document.getElementById('test-round').textContent = `Round ${session.round}`;
+
+  // Progress reset
+  updateProgress(0, questions.length);
+
+  // Build questions
+  const stack = document.getElementById('q-stack');
+  stack.innerHTML = questions.map((q, qi) => `
+    <div class="q-card" id="qcard-${qi}" style="animation:screen-in .3s ${qi*.06}s both">
+      <div class="q-header">
+        <div class="q-num">${qi+1}</div>
+        <div>
+          <div class="q-text">${q.question}</div>
+          <div class="q-concept">${q.concept || ''}</div>
+        </div>
+      </div>
+      <div class="options" id="opts-${qi}">
+        ${q.options.map((opt, oi) => `
+          <div class="opt-item" id="opt-${qi}-${oi}">
+            <input type="radio" name="q${qi}" id="r${qi}-${oi}" value="${esc(opt)}"
+              onchange="recordAnswer(${qi},'${escJs(opt)}',${questions.length})"/>
+            <label class="opt-label" for="r${qi}-${oi}">
+              <span class="opt-radio"></span>${opt}
+            </label>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  // Reset submit button
+  const btn = document.getElementById('submit-btn');
+  btn.textContent = 'Submit Answers';
+  btn.className = 'btn btn-lime';
+  btn.style = 'flex:1;font-size:15px;padding:16px;';
+  btn.onclick = submitTest;
+
+  show('s-test');
+}
+
+function recordAnswer(qi, val, total) {
+  session.answers[qi] = val;
+  updateProgress(Object.keys(session.answers).length, total);
+}
+
+function updateProgress(done, total) {
+  const pct = total ? Math.round(done/total*100) : 0;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-text').textContent = `${done} / ${total} answered`;
+  document.getElementById('prog-pct').textContent  = pct + '%';
+}
+
+// ═══════════════════════════════════════════════
+// SUBMIT TEST
+// ═══════════════════════════════════════════════
+function submitTest() {
+  const qs     = session.questions;
+  const missing = qs.length - Object.keys(session.answers).length;
+  if(missing > 0) {
+    const btn = document.getElementById('submit-btn');
+    btn.textContent = `⚠ ${missing} unanswered — tap to submit anyway`;
+    btn.className   = 'btn btn-danger';
+    btn.style = 'flex:1;font-size:15px;padding:16px;';
+    btn.onclick = () => evaluate(qs);
+    return;
+  }
+  evaluate(qs);
+}
+
+// ═══════════════════════════════════════════════
+// EVALUATE
+// ═══════════════════════════════════════════════
+async function evaluate(questions) {
+  let correct = 0;
+  const wrongQs = [];
+
+  questions.forEach((q, i) => {
+    const sel = session.answers[i] || '';
+    const ok  = sel === q.correct;
+    if(ok) correct++;
+    else wrongQs.push(q);
+  });
+
+  const pct  = Math.round(correct / questions.length * 100);
+  const pass = pct >= 60;
+
+  session.roundHistory.push({ round: session.round, score: correct, total: questions.length, pct, pass });
+  session.wrongQuestions = wrongQs;
+
+  // Render results
+  renderResults(questions, correct, pct, pass, wrongQs);
+
+  // Fetch AI feedback in background
+  fetchFeedback(correct, questions.length, wrongQs);
+}
+
+// ═══════════════════════════════════════════════
+// RENDER RESULTS
+// ═══════════════════════════════════════════════
+function renderResults(questions, correct, pct, pass, wrongQs) {
+  // Title
+  document.getElementById('result-title').textContent = pass
+    ? `Round ${session.round} — Well done!`
+    : `Round ${session.round} — Keep going!`;
+
+  // Score ring
+  const circ   = 2 * Math.PI * 54;  // r=54 → circumference ≈ 339
+  const offset = circ - (pct / 100) * circ;
+  document.getElementById('score-block').innerHTML = `
+    <div class="score-hero">
+      <div class="score-ring ${pass?'':'fail'}" id="score-ring">
+        <svg viewBox="0 0 120 120">
+          <circle class="track" cx="60" cy="60" r="54"/>
+          <circle class="fill"  cx="60" cy="60" r="54" stroke-dasharray="${circ.toFixed(0)}" stroke-dashoffset="${circ.toFixed(0)}" id="score-arc"/>
+        </svg>
+        <div class="score-num">${pct}%</div>
+      </div>
+      <div class="score-label">${correct} / ${questions.length} correct</div>
+      <div class="score-sub">${session.subject} · ${session.unit}</div>
+    </div>
+  `;
+  // Animate arc after render
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const arc = document.getElementById('score-arc');
+      if(arc) arc.style.strokeDashoffset = offset.toFixed(0);
+    });
+  });
+
+  // Round history pills
+  document.getElementById('round-history').innerHTML = session.roundHistory.map(r =>
+    `<span class="round-pill ${r.pass?'pass':'fail'}">R${r.round}: ${r.pct}%</span>`
+  ).join('');
+
+  // Weak concepts block
+  const wb = document.getElementById('weak-block');
+  if(wrongQs.length > 0) {
+    wb.innerHTML = `
+      <div class="weak-banner">
+        <div class="weak-title">⚡ ${wrongQs.length} weak concept${wrongQs.length>1?'s':''}</div>
+        <div class="weak-tags">${wrongQs.map(q=>`<span class="weak-tag">${q.concept||q.question.substring(0,35)+'...'}</span>`).join('')}</div>
+        <div class="weak-desc">The AI will now generate a targeted retest on only these specific concepts — from fresh angles, increasing difficulty.</div>
+      </div>
+    `;
+  } else { wb.innerHTML = ''; }
+
+  // Answer review
+  document.getElementById('review-list').innerHTML = questions.map((q, i) => {
+    const sel = session.answers[i] || '(no answer)';
+    const ok  = sel === q.correct;
+    return `
+      <div class="review-row ${ok?'ok':'wrong'}">
+        <div class="review-icon">${ok?'✅':'❌'}</div>
+        <div>
+          <div class="review-q">${q.question}</div>
+          <div class="review-a">Your answer: <strong>${sel}</strong>
+          ${!ok?`<br/><span class="review-correct">✓ Correct: ${q.correct}</span>`:''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Action buttons
+  const actions = document.getElementById('result-actions');
+  if(wrongQs.length === 0) {
+    actions.innerHTML = `
+      <div class="perfect-badge" style="width:100%">
+        <div class="trophy">🏆</div>
+        <h2>Perfect Score!</h2>
+        <p>You've mastered every concept in this unit. Great work, ${student.name}!</p>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-lime" onclick="newSubject()">Study Another Topic →</button>
+          <button class="btn btn-ghost" onclick="show('s-course')">Change Subject</button>
+        </div>
+      </div>
+    `;
+  } else {
+    actions.innerHTML = `
+      <button class="btn btn-lime" style="flex:1;font-size:15px;padding:16px;" onclick="doAdaptiveTest()">
+        ⚡ Adaptive Retest on Weak Concepts
+      </button>
+      <button class="btn btn-ghost" onclick="newSubject()">Try New Topic</button>
+    `;
+  }
+
+  show('s-results');
+}
+
+// ═══════════════════════════════════════════════
+// FETCH AI FEEDBACK
+// ═══════════════════════════════════════════════
+async function fetchFeedback(score, total, wrongQs) {
+  const box = document.getElementById('feedback-box');
+  box.style.display = 'block';
+  document.getElementById('feedback-text').textContent = 'Generating personalised feedback…';
+  try {
+    const res = await fetch(`${API}/feedback`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name: student.name,
+        course: session.course,
+        subject: session.subject,
+        unit: session.unit,
+        score, total,
+        wrong_concepts: wrongQs.map(q => q.concept || q.question.substring(0,50))
+      })
+    });
+    const data = await res.json();
+    document.getElementById('feedback-text').textContent = data.ok ? data.feedback : 'Could not load feedback.';
+  } catch(e) {
+    document.getElementById('feedback-text').textContent = 'Feedback unavailable — check backend connection.';
+  }
+}
+
+// ═══════════════════════════════════════════════
+// ADAPTIVE RETEST
+// ═══════════════════════════════════════════════
+async function doAdaptiveTest() {
+  session.round++;
+
+  showLoading(
+    `Building Round ${session.round} adaptive test…`,
+    'Targeting your specific weak concepts',
+    [
+      '🔍 Identifying gaps…',
+      '🧠 Writing focused questions…',
+      '✅ Increasing difficulty…'
+    ]
+  );
+
+  try {
+    const res = await fetch(`${API}/adaptive-test`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name:    student.name,
+        course:  session.course,
+        subject: session.subject,
+        unit:    session.unit,
+        wrong_questions: session.wrongQuestions.map(q => ({
+          question: q.question,
+          correct:  q.correct,
+          concept:  q.concept || ''
+        }))
+      })
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error(data.error);
+    loadTestScreen(data.data.questions, true);
+  } catch(e) {
+    // Fallback: reuse original wrong questions
+    loadTestScreen(session.wrongQuestions, true);
+  }
+}
+
+// ═══════════════════════════════════════════════
+// NEW SUBJECT
+// ═══════════════════════════════════════════════
+function newSubject() {
+  document.getElementById('inp-subject').value = '';
+  document.getElementById('inp-unit').value    = '';
+  session.round = 0;
+  session.roundHistory = [];
+  session.wrongQuestions = [];
+  show('s-course');
+}
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function esc(s)    { return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function escJs(s)  { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+
+// Enter key helpers
+document.addEventListener('keydown', e => {
+  if(e.key !== 'Enter') return;
+  const active = document.querySelector('.screen.active');
+  if(!active) return;
+  if(active.id === 's-profile') submitProfile();
+  if(active.id === 's-course')  startTest();
+});
+
+// Init step dots
+renderSteps('s-profile');
+</script>
+</body>
+</html>
